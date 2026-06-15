@@ -1,0 +1,163 @@
+# CAMO — Reference Deployment
+# Spec reference: Section 13 — Implementation Requirements
+#
+# Brings up all five CAMO components as isolated containers.
+# Components communicate via shared /run/camo volume (Unix sockets).
+#
+# Prerequisites:
+#   - Linux host, kernel 5.6+ (WireGuard native)
+#   - Docker Compose v2
+#   - M2M carrier agreement with private APN routing to this host
+#   - /etc/camo/ config directory populated (see config examples below)
+#
+# Usage:
+#   docker compose up -d
+#
+# Development mode (no real APN core or carrier):
+#   APN_ADAPTER=mock docker compose up -d
+
+version: "3.9"
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+volumes:
+  camo-run:
+    driver: local
+  camo-data:
+    driver: local
+  camo-config:
+    driver: local
+
+services:
+
+  # camo-gossip — node discovery and announcement
+  # Spec reference: Section 9
+  gossip:
+    <<: *common
+    build:
+      context: ../camo-gossip
+      dockerfile: ../deploy/Dockerfile.go
+    image: camo/gossip:latest
+    container_name: camo-gossip
+    ports:
+      - "7946:7946/tcp"  # gossip TCP listener
+    volumes:
+      - camo-run:/run/camo
+      - camo-data:/var/lib/camo
+      - camo-config:/etc/camo:ro
+    environment:
+      - CAMO_COMPONENT=gossip
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/camo/gossip.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # camo-simpool — SIM pool management and rotation
+  # Spec reference: Section 7
+  simpool:
+    <<: *common
+    build:
+      context: ../camo-simpool
+      dockerfile: ../deploy/Dockerfile.go
+    image: camo/simpool:latest
+    container_name: camo-simpool
+    volumes:
+      - camo-run:/run/camo
+      - camo-config:/etc/camo:ro
+    environment:
+      - CAMO_COMPONENT=simpool
+    depends_on:
+      gossip:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/camo/simpool.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # camo-apncore — APN core interface adapter
+  # Spec reference: Section 6, Appendix B
+  apncore:
+    <<: *common
+    build:
+      context: ../camo-apncore
+      dockerfile: ../deploy/Dockerfile.go
+    image: camo/apncore:latest
+    container_name: camo-apncore
+    ports:
+      - "2152:2152/udp"  # GTP-U inbound from carrier
+    volumes:
+      - camo-run:/run/camo
+      - camo-config:/etc/camo:ro
+    environment:
+      - CAMO_COMPONENT=apncore
+      - APN_ADAPTER=${APN_ADAPTER:-mock}
+    depends_on:
+      gossip:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/apncore.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # camo-wireguard — WireGuard peer lifecycle management
+  # Spec reference: Section 8
+  wireguard:
+    <<: *common
+    build:
+      context: ../camo-wireguard
+      dockerfile: ../deploy/Dockerfile.go
+    image: camo/wireguard:latest
+    container_name: camo-wireguard
+    ports:
+      - "51820:51820/udp"  # WireGuard inter-node tunnels
+    volumes:
+      - camo-run:/run/camo
+      - camo-data:/var/lib/camo
+      - camo-config:/etc/camo:ro
+    environment:
+      - CAMO_COMPONENT=wireguard
+    cap_add:
+      - NET_ADMIN  # Required for WireGuard interface management
+    sysctls:
+      - net.ipv4.ip_forward=1
+    depends_on:
+      gossip:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-S", "/run/camo/wireguard.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # camo-circuit — circuit construction and rotation
+  # Spec reference: Section 10, Section 11
+  circuit:
+    <<: *common
+    build:
+      context: ../camo-circuit
+      dockerfile: ../deploy/Dockerfile.go
+    image: camo/circuit:latest
+    container_name: camo-circuit
+    volumes:
+      - camo-run:/run/camo
+      - camo-config:/etc/camo:ro
+    environment:
+      - CAMO_COMPONENT=circuit
+    depends_on:
+      gossip:
+        condition: service_healthy
+      simpool:
+        condition: service_healthy
+      apncore:
+        condition: service_healthy
+      wireguard:
+        condition: service_healthy
