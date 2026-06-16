@@ -104,10 +104,10 @@ camo/
 
 | Document | Description |
 |---|---|
-| [Protocol Specification](./spec/mobile_onion_routing_spec.md) | Complete protocol — architecture, data structures, interface contracts, threat model |
-| [GSM Routing Chains](./spec/gsm_routing_chains.md) | Foundational analysis — forwarding chains, M2M breaks, defensive stack |
-| [Protocol & SS7](./spec/gsm_protocol_ss7.md) | Technical background — USSD/MMI, SS7 architecture, SIM Toolkit |
-| [Threats & Legislation](./spec/gsm_threats_legislation.md) | Threat landscape — SS7 attacks, IMSI catchers, legislative context |
+| [Protocol Specification](https://github.com/pablo-chacon/camo/blob/main/docs/mobile_onion_routing_spec.md) | Complete protocol — architecture, data structures, interface contracts, threat model |
+| [GSM Routing Chains](https://github.com/pablo-chacon/camo/blob/main/docs/gsm/gsm_routing_chains.md) | Foundational analysis — forwarding chains, M2M breaks, defensive stack |
+| [Protocol & SS7](https://github.com/pablo-chacon/camo/blob/main/docs/gsm/gsm_protocol_ss7.md) | Technical background — USSD/MMI, SS7 architecture, SIM Toolkit |
+| [Threats & Legislation](https://github.com/pablo-chacon/camo/blob/main/docs/gsm/gsm_threats_legislation.md) | Threat landscape — SS7 attacks, IMSI catchers, legislative context |
 
 ---
 
