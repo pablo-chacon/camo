@@ -152,7 +152,7 @@ No registration. No fee. No central authority.
 
 ```
 Chacon, P. (2026). CAMO: Cellular Anonymization and Mobile Onion-routing.
-Protocol Specification v0.1. https://github.com/[repo]
+Protocol Specification v0.1. https://github.com/pablo-chacon/camo/
 License: CC BY 4.0
 ```
 
