@@ -158,4 +158,9 @@ License: CC BY 4.0
 
 ---
 
+**Contact**: [pablo-chacon-ai@proton.me](pablo-chacon-ai@proton.me)
+
 *Pablo Chacon — June 2026*
+
+---
+
