@@ -1,39 +1,74 @@
 # CAMO
 ### Cellular Anonymization and Mobile Onion-routing
 
-A protocol specification and reference implementation for decentralized anonymization at the cellular radio layer.
+A discovery: standard GSM and IoT industry infrastructure, composed in a specific architecture, produces onion routing at the cellular radio layer.
 
 **Author:** Pablo Chacon  
-**Status:** Specification complete — implementation in progress  
-**Version:** 0.1  
+**Status:** Specification complete — reference implementation v0.1  
 **License:** CC BY 4.0
 
 ---
 
-## What CAMO is
+## The discovery
 
-Every existing anonymization network operates above the cellular radio layer. They protect data content and IP routing. None of them address the layer where a device's identity, physical location, and traffic metadata are exposed to the carrier network — regardless of what software runs on the device.
+This protocol was not designed toward a known goal. It was found by following a chain of reasoning through GSM signaling architecture — from how carriers route calls, to how forwarding chains produce partial visibility at each node, to how M2M private APNs create jurisdictional breaks, to how these properties compose into a distributed anonymization network.
 
-CAMO closes that gap. It defines a permissionless network of distribution servers — each running a containerized mobile core and a pool of M2M SIM cards — that collectively provide onion routing at the radio layer. The carrier network provides radio access. Routing, encryption, and chain topology are defined by the CAMO protocol, independent of carrier infrastructure.
+The result: GSM call forwarding, private APN routing, M2M eSIM pools, and WireGuard inter-node encryption, assembled into a permissionless distributed network, produce onion routing at the cellular radio layer. No single node has visibility of both origin and destination. The carrier is reduced to a radio access substrate.
 
-No single node has visibility of both origin and destination. The protocol is free. Anyone can run a node. No central authority exists.
+None of the components are new:
+
+| Component | Standard / Product | Age |
+|---|---|---|
+| GSM call forwarding | ITU-T / 3GPP | 1987 |
+| Private APN routing | Standard M2M carrier product | ~2000s |
+| GTP-U tunneling | 3GPP TS 29.281 | GSM era |
+| M2M eSIM provisioning | GSMA SGP.02 | 2016 |
+| WireGuard | Linux kernel 5.6+ | 2017 |
+| Signed gossip protocol | Distributed systems standard | — |
+
+CAMO is the recognition that these components, composed in a specific way, produce mobile onion routing as an emergent property — and the formal specification of that architecture so anyone can implement it.
+
+---
+
+## Why this matters
+
+Existing anonymization networks, including Tor, operate above the cellular radio layer. They protect data content and IP routing. They do not address what the carrier sees: IMSI, IMEI, physical location, and traffic metadata — regardless of what software runs on the device.
+
+CAMO closes that gap. The carrier provides radio access and nothing more. Routing, encryption, chain topology, and node discovery are defined by the protocol, independent of carrier infrastructure.
+
+The two are complementary. Tor protects the IP layer. CAMO protects the radio layer. Running both covers the full stack.
+
+---
+
+## The enforcement-resistance property
+
+CAMO is built exclusively from infrastructure the global carrier and IoT industry already operates and depends on commercially:
+
+- Private APNs are standard enterprise products sold for IoT fleet management
+- M2M eSIM remote provisioning is a GSMA standard deployed at scale globally
+- GTP-U tunneling is how mobile data has functioned for decades
+- WireGuard is in the Linux kernel
+
+Disabling CAMO requires disabling these components. Disabling these components collapses enterprise IoT, M2M carrier infrastructure, and the mobile data layer itself.
+
+This enforcement-resistance is not a feature that was engineered. It is a structural consequence of what CAMO is made from.
 
 ---
 
 ## How it works
 
 ```
-Device (SIM + APN config)
-  → Carrier (radio access only)
+Device (any SIM + APN config pointing at entry server)
+  → Carrier (radio access only — sees encrypted tunnel, nothing beyond)
     → Entry distribution server
       → WireGuard tunnel → Middle hop(s)
         → WireGuard tunnel → Exit node
           → Destination
 ```
 
-Each distribution server sees only its adjacent hops. The carrier sees an encrypted tunnel to the entry server and nothing beyond it. The destination sees the exit node's IP. No party has the full picture.
+Each distribution server sees only its adjacent hops. Chains rotate every 10 minutes. eSIM pools at each server rotate independently on a non-synchronized timer. No stable identifier exists at any layer across rotation cycles.
 
-Chains are constructed dynamically, rotated every 10 minutes, and enforced to span multiple jurisdictions. Anyone can operate a distribution server with commercially available M2M SIM cards and a private APN agreement.
+Anyone can run a distribution server. No registration. No permission. No fee.
 
 ---
 
@@ -41,29 +76,26 @@ Chains are constructed dynamically, rotated every 10 minutes, and enforced to sp
 
 ```
 camo/
-├── README.md                         — this file
+├── README.md
 ├── LICENSE                           — CC BY 4.0
 ├── LEGAL.md                          — legal considerations
-├── THREADS.md                        — roadmap and open threads
 │
 ├── spec/
 │   ├── mobile_onion_routing_spec.md  — protocol specification v0.1
 │   ├── gsm_routing_chains.md         — foundational architecture analysis
-│   ├── gsm_protocol_ss7.md           — protocol and SS7 background
+│   ├── gsm_protocol_ss7.md           — GSM and SS7 background
 │   └── gsm_threats_legislation.md    — threat landscape and legislation
 │
-├── camo-gossip/                      — gossip agent (node discovery)
-├── camo-circuit/                     — circuit controller
+├── camo-gossip/                      — node discovery (signed gossip protocol)
+├── camo-circuit/                     — circuit construction and rotation
 ├── camo-apncore/                     — APN core interface adapter
-├── camo-simpool/                     — SIM pool manager
-├── camo-wireguard/                   — WireGuard peer management
+├── camo-simpool/                     — eSIM pool management
+├── camo-wireguard/                   — WireGuard peer lifecycle
 │
-├── deploy/
-│   ├── docker-compose.yml            — single-node reference deployment
-│   └── helm/                         — Kubernetes deployment charts
-│
-└── tools/
-    └── camo-cli/                     — node operator tooling
+└── deploy/
+    ├── docker-compose.yml            — single-node reference deployment
+    ├── Dockerfile.go                 — shared build image
+    └── config.example                — annotated configuration examples
 ```
 
 ---
@@ -75,85 +107,44 @@ camo/
 | [Protocol Specification](./spec/mobile_onion_routing_spec.md) | Complete protocol — architecture, data structures, interface contracts, threat model |
 | [GSM Routing Chains](./spec/gsm_routing_chains.md) | Foundational analysis — forwarding chains, M2M breaks, defensive stack |
 | [Protocol & SS7](./spec/gsm_protocol_ss7.md) | Technical background — USSD/MMI, SS7 architecture, SIM Toolkit |
-| [Threats & Legislation](./spec/gsm_threats_legislation.md) | Threat landscape — SS7 attacks, IMSI catchers, Swedish legislative context |
-
-Start with the [Protocol Specification](./spec/mobile_onion_routing_spec.md).
-
----
-
-## Implementation components
-
-### camo-gossip
-Node discovery and announcement. Implements the signed gossip protocol defined in Section 9 of the specification. Handles NodeRecord signing and verification, heartbeat management, peer tracking, and liveness monitoring.
-
-### camo-circuit
-Circuit construction and rotation. Implements the chain building algorithm defined in Section 10. Manages WireGuard peer programming for active circuits, rotation scheduling, and session isolation.
-
-### camo-apncore
-APN core interface adapter. Implements the management API contract defined in Appendix B of the specification. Provides a compliant adapter layer over a chosen APN core implementation (Open5GS, free5GC, or other). The adapter is the only component that changes when switching APN core software.
-
-### camo-simpool
-SIM pool management. Tracks available M2M SIMs, monitors liveness, manages allocation to active sessions, and reports pool capacity to the gossip agent for NodeRecord announcements.
-
-### camo-wireguard
-WireGuard peer lifecycle management. Adds and removes peers dynamically as circuits are constructed and torn down. Manages the WireGuard interface configuration independently of the circuit controller.
+| [Threats & Legislation](./spec/gsm_threats_legislation.md) | Threat landscape — SS7 attacks, IMSI catchers, legislative context |
 
 ---
 
 ## Running a node
 
-Full requirements are in Section 13 of the specification. Summary:
+Full requirements in Section 13 of the specification. In brief:
 
-**Infrastructure:**
 - Linux server, kernel 5.6+, public IP
 - Docker or Kubernetes
-- At least one M2M carrier agreement with private APN routing to your server IP
+- M2M carrier agreement with private APN routing to your server IP
+- Pool of M2M eSIM cards (minimum 8, recommended 24+)
 
-**SIM pool:**
-- Minimum 4 M2M SIMs (12+ recommended)
-- At least one carrier, one jurisdiction
+```
+docker compose up -d
+```
 
-**Software:**
-- WireGuard (kernel-native, no additional install on 5.6+)
-- Docker Compose (single node) or Helm (Kubernetes)
-- CAMO components from this repository
-
-No registration. No fee. No permission required.
+No registration. No fee. No central authority.
 
 ---
 
 ## Design principles
 
 - **Permissionless** — anyone can run a node
-- **No central authority** — no directory server, no single point whose unavailability affects the network
-- **Implementation agnostic** — the spec defines interfaces; implementations are interchangeable
+- **No central authority** — no single point whose unavailability affects the network
+- **Implementation agnostic** — the spec defines interfaces, not software
 - **Free** — no payment mechanism, no token, no fee at the protocol level
-- **Layered** — carrier provides radio access; CAMO provides everything above it
+- **Built from standards** — every component is an existing industry standard or open protocol
 - **Honest** — the threat model documents limitations as clearly as protections
-
----
-
-## Contributing
-
-Contributions to the specification, implementation, and research are welcome.
-
-See [THREADS.md](./THREADS.md) for current work items and open research questions.
-
-- **Specification issues** — describe the problem, the affected section, and a proposed resolution
-- **Implementation** — pick up any item from THREADS.md or open a new thread
-- **Research** — formal analysis of anonymity properties is particularly needed
-- **Threat model gaps** — document the attack, conditions, and potential mitigations
-
-All contributions are subject to CC BY 4.0.
 
 ---
 
 ## Related work
 
 - [Tor Project](https://torproject.org) — foundational onion routing; CAMO complements Tor at the radio layer
-- [Open5GS](https://open5gs.org) — open source 4G/5G core, reference APN core option
+- [Open5GS](https://open5gs.org) — open source 4G/5G core, one compliant APN core option
 - [free5GC](https://free5gc.org) — Go-based 5G core, Kubernetes-native
-- [WireGuard](https://wireguard.com) — inter-node encryption protocol
+- [WireGuard](https://wireguard.com) — inter-node encryption
 
 ---
 

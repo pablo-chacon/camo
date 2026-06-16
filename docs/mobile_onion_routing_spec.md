@@ -1,4 +1,4 @@
-# Mobile Onion Routing via Private APN Substrate
+# CAMO — Cellular Anonymization and Mobile Onion-routing
 ## Protocol Specification v0.1
 
 **Author:** Pablo Chacon  
@@ -15,11 +15,17 @@
 
 ## Abstract
 
-Existing anonymization networks, including Tor, operate above the cellular radio layer. They protect data content and routing topology within the IP stack but leave the radio identity layer — IMSI, IMEI, carrier metadata, physical location — entirely exposed. This represents a fundamental and unaddressed gap in mobile privacy infrastructure.
+This document describes a discovery: the fundamental operating properties of GSM call forwarding, M2M private APN infrastructure, and eSIM remote provisioning — when composed — produce onion routing at the cellular radio layer as an emergent architectural property. This is not a novel technology. Every component described in this specification is a decades-old standard or a current commercial product. What is described here is the recognition that these components, assembled in a specific way, close the one gap in mobile privacy infrastructure that no existing solution addresses.
 
-This document specifies a protocol for decentralized onion routing implemented natively at the cellular radio layer using private APN (Access Point Name) infrastructure. The protocol defines a permissionless network of distribution servers — each running a containerized mobile core and a pool of M2M SIM cards — interconnected via WireGuard tunnels and discovered through a signed gossip protocol. Participating devices route their traffic through dynamically constructed, rotating chains of distribution servers. Each server has visibility only of its adjacent hops. No single node can reconstruct the full circuit.
+Existing anonymization networks, including Tor, operate above the cellular radio layer. They protect data content and routing topology within the IP stack but leave the radio identity layer — IMSI, IMEI, carrier metadata, physical location — entirely exposed. This gap has been documented. It has not been closed.
 
-The carrier network is reduced to a radio access substrate. Everything above the radio layer — routing, encryption, chain construction, node discovery — is defined by this protocol and is independent of carrier infrastructure, carrier policy, and carrier jurisdiction.
+CAMO closes it using infrastructure that already exists everywhere.
+
+The protocol defines a permissionless network of distribution servers — each running a containerized mobile core and a pool of M2M eSIM cards — interconnected via WireGuard tunnels and discovered through a signed gossip protocol. Participating devices route their traffic through dynamically constructed, rotating chains of distribution servers. Each server has visibility only of its adjacent hops. No single node can reconstruct the full circuit.
+
+Every component is a GSM standard, an IoT industry standard, or an open protocol in wide commercial deployment: GTP-U (3GPP TS 29.281), private APN routing (standard M2M carrier product), eSIM remote provisioning (GSMA SGP.02), WireGuard (Linux kernel 5.6+). CAMO composes these components. It does not modify them.
+
+This has a structural consequence that is worth stating explicitly: CAMO cannot be banned or disabled without disabling the underlying infrastructure it is built from. Private APNs cannot be prohibited without collapsing enterprise IoT. eSIM remote provisioning cannot be prohibited without dismantling the M2M carrier industry. GTP-U tunneling cannot be prohibited without breaking how mobile data works. The protocol is enforcement-resistant not by design but by composition — it is indistinguishable from normal commercial use of standard telecommunications infrastructure.
 
 This specification is complete and intended for implementation.
 
@@ -49,15 +55,19 @@ This specification is complete and intended for implementation.
 
 ## 1. Introduction
 
-The relationship between a mobile device and the cellular network is asymmetric by design. The subscriber registers with the carrier. The carrier assigns identity. The carrier routes traffic. The carrier retains metadata. In most jurisdictions, the carrier is legally required to provide lawful intercept capability — meaning the carrier's infrastructure is simultaneously the subscriber's communication channel and the state's interception infrastructure.
+This specification documents a discovery made while investigating the attack surface of USSD codes and GSM signaling. The investigation followed a chain of reasoning from how carriers route calls, to how forwarding chains produce partial visibility at each node, to how M2M private APNs create jurisdictional breaks, to how these properties — when composed deliberately — produce onion routing at the cellular radio layer using only standard telecommunications infrastructure.
 
-Existing privacy tools operate above this layer. A device running Tor still has a SIM. That SIM registers on towers. The carrier knows the device's IMSI, its physical location to cell-level granularity, and the timing and volume of all traffic — even when the content is protected. A device using Signal still exposes its cellular identity to its carrier. A device running GrapheneOS still participates in the carrier's metadata collection.
+The discovery is this: GSM call forwarding, private APN routing, M2M eSIM pools, and WireGuard inter-node encryption, assembled into a distributed network architecture, produce a system with the same fundamental anonymization properties as Tor — but operating at the radio layer where Tor does not reach, and built entirely from infrastructure that the global carrier industry already operates and depends on.
+
+The relationship between a mobile device and the cellular network is asymmetric by design. The subscriber registers with the carrier. The carrier assigns identity. The carrier routes traffic. The carrier retains metadata. Carrier infrastructure collects this data as a structural property of how cellular networks operate — call records, tower location, session timing — regardless of what software runs on the device.
+
+Existing privacy tools operate above this layer. A device running Tor still has a SIM. That SIM registers on towers. The carrier knows the device's IMSI, its physical location to cell-level granularity, and the timing and volume of all traffic — even when content is protected. A device using Signal still exposes its cellular identity to its carrier. A device running GrapheneOS still participates in the carrier's metadata collection.
 
 This is not a failure of those tools. It is a consequence of where they operate. None of them were designed to address the radio layer because the radio layer was considered fixed infrastructure — something you use, not something you architect around.
 
-This protocol is built on a different premise: the radio layer is not fixed. The carrier provides radio access. Everything above the radio layer is negotiable. A private APN moves the gateway — the point where a device's traffic enters the internet — from carrier infrastructure to operator-defined infrastructure. A distributed network of private APN gateways, interconnected and routing traffic through dynamically constructed chains, produces at the radio layer the same property that Tor produces at the IP layer: no single node has full visibility of both origin and destination.
+The premise of this protocol is that the radio layer is not fixed. The carrier provides radio access. Everything above the radio layer is configurable. A private APN moves the gateway from carrier infrastructure to operator-defined infrastructure. A distributed network of private APN gateways, running containerized mobile cores and rotating eSIM pools, interconnected via WireGuard and discovered through a signed gossip protocol, produces at the radio layer the same property that Tor produces at the IP layer: no single node has full visibility of both origin and destination.
 
-This protocol specifies how to build that network.
+The components are not new. Private APNs are sold to enterprises today for IoT fleet management. M2M eSIM remote provisioning is a GSMA standard deployed at scale. WireGuard is in the Linux kernel. GTP-U is how mobile data has worked for decades. CAMO is the recognition that these components, composed in a specific architecture, produce mobile onion routing as an emergent property — and the formal specification of that architecture so anyone can implement it.
 
 ---
 
@@ -458,6 +468,33 @@ The SIM manager monitors liveness of both active and dormant SIMs:
 - Dormant SIMs: periodic liveness checks at intervals not exceeding 3600 seconds
 - SIMs failing liveness checks are flagged as unavailable and excluded from rotation
 - Unavailable SIMs are retried at exponential backoff intervals before being flagged for operator attention
+
+### 7.10 eSIM profiles as the recommended pool implementation
+
+Physical M2M SIM cards satisfy the requirements of this specification. eSIM (embedded SIM) profiles are the recommended implementation where hardware supports them.
+
+An eSIM chip stores multiple carrier profiles. Each profile is a complete subscriber identity — IMSI, authentication keys, APN configuration — downloadable and manageable over the air via the GSMA Remote SIM Provisioning (RSP) standard (SGP.02 for M2M, SGP.22 for consumer).
+
+The mapping to this specification's pool model is direct:
+
+| Section 7 concept | Physical SIM | eSIM implementation |
+|---|---|---|
+| Active SIM | SIM inserted, carrier-registered | Profile enabled via RSP API |
+| Dormant SIM | SIM idle, carrier-registered | Profile disabled, reactivatable |
+| Pool expansion | Physical SIM procurement and insertion | Profile download via RSP API call |
+| Carrier switch | Physical SIM swap | Profile replacement via RSP |
+
+**Operational advantages over physical SIMs:**
+
+- Pool expansion is an API call — no physical access to the distribution server required
+- Profile enable/disable maps directly to active/dormant rotation (Section 7.5) — disabled profiles are invisible to the carrier, stronger than physical SIM dormancy where the SIM remains passively registered
+- Multiple profiles on a single eSIM chip reduce hardware requirements for large pools
+- Carrier and jurisdiction diversity can be managed remotely — download profiles from carriers in different jurisdictions without touching the server
+- Profile switching is programmable — the SIM manager can enable/disable profiles via RSP API as part of the rotation algorithm
+
+**Compatibility:**
+
+eSIM RSP is standardized. Any M2M eSIM carrier implementing GSMA SGP.02 exposes compatible profile management. The CAMO SIM manager treats eSIM profile state as equivalent to physical SIM active/dormant state — no protocol-level distinction exists between the two. Implementations supporting eSIM SHOULD use the RSP API for profile state management in place of software-only active/dormant tracking.
 
 ---
 
@@ -875,6 +912,8 @@ This specification focuses on IPv4. IPv6 support requires additional considerati
 - 3GPP TS 29.002 — MAP specification  
 - 3GPP TS 23.401 — GPRS enhancements for E-UTRAN access (EPC architecture)
 - 3GPP TS 23.501 — System architecture for 5G (5GC)
+- GSMA SGP.02 — Remote Provisioning Architecture for Embedded UICC (M2M eSIM)
+- GSMA SGP.22 — RSP Technical Specification (consumer eSIM)
 - WireGuard: Next Generation Kernel Network Tunnel — Donenfeld, J.A. (2017). NDSS.
 
 ### Anonymization research
