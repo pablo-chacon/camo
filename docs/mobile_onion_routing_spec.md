@@ -755,6 +755,24 @@ GTP-U (GPRS Tunneling Protocol — User Plane) is the carrier protocol used to t
 
 A distribution server acting as entry node terminates GTP-U tunnels from the carrier. The GTP-U header is stripped at this point. Inner IP traffic enters the protocol's routing layer. GTP-U is not used between distribution servers — WireGuard tunnels carry inter-node traffic.
 
+### 11.5 Device-to-entry encryption gap
+
+GTP-U provides tunneling, not confidentiality. The protocol does not encrypt the inner IP payload. This is a property of GTP-U itself, not a CAMO design choice, and it is a known characteristic of carrier transport infrastructure generally — any party with visibility into the GTP-U transport segment between the device's radio access and the entry distribution server can in principle inspect the inner payload.
+
+This stands in contrast to every other segment of a CAMO circuit. Inter-node traffic between distribution servers is protected by WireGuard (Section 8). The device-to-entry leg, carried over carrier GTP-U, is not protected by any encryption this specification mandates.
+
+**Recommendation.** Devices SHOULD apply their own encryption on top of the GTP-U leg specifically to close this gap. This can take the form of:
+
+- A VPN client on the device, terminating beyond the CAMO exit node or at a separate trusted endpoint
+- TLS at the application layer for all traffic (standard practice regardless of CAMO)
+- An encrypted overlay (e.g. WireGuard) from the device directly to the entry distribution server, if the entry server offers such an endpoint in addition to its GTP-U interface
+
+This recommendation is independent of which encryption the application layer already provides. Even where application traffic is itself encrypted (TLS web traffic, Signal, etc.), an unencrypted GTP-U leg still exposes traffic metadata — destination IPs, timing, and volume — to anything observing that transport segment. Device-side encryption closes this independent of the application's own protections.
+
+**Where the VPN terminates matters.** A VPN client active on the device before traffic enters the GTP-U tunnel protects the device-to-entry leg specifically. A VPN terminating after the CAMO exit node protects the exit-to-destination leg instead — and additionally removes destination visibility from the exit node operator, since the exit node then sees only encrypted VPN traffic rather than the final destination. These are not equivalent and operators with a specific threat model should be precise about which leg they intend to protect.
+
+This is documented as a specification gap rather than a defect: closing it is a SHOULD-level recommendation for device configuration, not a MUST-level requirement on the protocol, because the GTP-U leg is carrier transport that CAMO does not control. A future revision of this specification may define an optional device-to-entry encrypted overlay as part of the protocol itself rather than leaving it to operator discretion.
+
 ---
 
 ## 12. Threat Model
@@ -789,6 +807,9 @@ A well-resourced adversary operating many distribution servers could gain dispro
 
 **Exit node traffic:**  
 Traffic from the exit node to the destination is in plaintext unless the application provides end-to-end encryption. This is identical to Tor's exit node property. Applications SHOULD use TLS or end-to-end encryption independently of this protocol. The protocol does not inspect or modify application-layer content.
+
+**Device-to-entry transport:**  
+GTP-U, the carrier protocol carrying traffic from the device to the entry distribution server, provides tunneling but not payload confidentiality. This segment is not covered by the WireGuard encryption that protects all inter-node traffic in the rest of the circuit (Section 8). See Section 11.5 for the gap in full and recommended device-side mitigations.
 
 **Baseband:**  
 The device's baseband processor operates independently of the device OS with direct hardware access. A baseband-level compromise is outside this protocol's threat model and outside any current software solution's scope.
