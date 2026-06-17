@@ -116,25 +116,25 @@ The carrier cannot observe the destination of traffic. The carrier cannot observ
 
 ## 3. Design Principles
 
-**1. Permissionless**  
+**P1 — Permissionless**  
 Any operator with appropriate infrastructure can run a distribution server. There is no admission authority, no vetting process, no central registration. The network is open by design.
 
-**2. No single point of trust**  
+**P2 — No single point of trust**  
 No node in the network can reconstruct a complete circuit. No directory authority can be compelled to deanonymize users. No central coordinator exists.
 
-**3. Implementation agnostic**  
+**P3 — Implementation agnostic**  
 This specification defines interfaces and behaviors. It does not mandate specific APN core software. Compliant implementations may use any software that satisfies the interface contract defined in Appendix B.
 
-**4. Carrier agnostic**  
+**P4 — Carrier agnostic**  
 This protocol operates above the radio access layer. It requires only that the carrier support private APN routing to a customer-defined endpoint — a standard feature of M2M carrier offerings. No carrier-specific features, APIs, or cooperation beyond standard private APN provisioning are required.
 
-**5. Free to use**  
+**P5 — Free to use**  
 This protocol defines no payment mechanism, no token, no fee structure. Access to the network carries no cost at the protocol level. Node operators determine their own operational model. The protocol is silent on economics.
 
-**6. Jurisdictional diversity by construction**  
+**P6 — Jurisdictional diversity by construction**  
 Circuit construction algorithms enforce geographic and jurisdictional distribution across hops. No circuit may traverse multiple consecutive hops within the same legal jurisdiction.
 
-**7. Honest threat model**  
+**P7 — Honest threat model**  
 This specification documents what the protocol protects against and what it does not. No privacy claim is made beyond what the architecture supports.
 
 ---
@@ -761,17 +761,11 @@ GTP-U provides tunneling, not confidentiality. The protocol does not encrypt the
 
 This stands in contrast to every other segment of a CAMO circuit. Inter-node traffic between distribution servers is protected by WireGuard (Section 8). The device-to-entry leg, carried over carrier GTP-U, is not protected by any encryption this specification mandates.
 
-**Recommendation.** Devices SHOULD apply their own encryption on top of the GTP-U leg specifically to close this gap. This can take the form of:
+This is analogous to Tor's own documented position on its exit-to-destination leg (Section 12.2, "Exit node traffic"): Tor does not encrypt traffic beyond the exit node and does not specify or bundle a particular mitigation — it documents the gap and leaves application-layer or transport-layer encryption to the user. CAMO takes the same position here. What a device or its user chooses to layer on top of the device-to-entry leg — a VPN, TLS, an independent encrypted overlay, or nothing — is entirely outside this specification's scope. CAMO does not mandate, recommend a specific product, or define protocol behavior for any such layer.
 
-- A VPN client on the device, terminating beyond the CAMO exit node or at a separate trusted endpoint
-- TLS at the application layer for all traffic (standard practice regardless of CAMO)
-- An encrypted overlay (e.g. WireGuard) from the device directly to the entry distribution server, if the entry server offers such an endpoint in addition to its GTP-U interface
+The purpose of this section is solely to document the gap precisely so it is not mistaken for an oversight or assumed to be covered by Section 8's inter-node encryption. Whether and how a user addresses it is a device configuration decision, not a CAMO protocol concern — in the same way Tor documents exit-node plaintext exposure without specifying what, if anything, a user runs on top of Tor to address it.
 
-This recommendation is independent of which encryption the application layer already provides. Even where application traffic is itself encrypted (TLS web traffic, Signal, etc.), an unencrypted GTP-U leg still exposes traffic metadata — destination IPs, timing, and volume — to anything observing that transport segment. Device-side encryption closes this independent of the application's own protections.
-
-**Where the VPN terminates matters.** A VPN client active on the device before traffic enters the GTP-U tunnel protects the device-to-entry leg specifically. A VPN terminating after the CAMO exit node protects the exit-to-destination leg instead — and additionally removes destination visibility from the exit node operator, since the exit node then sees only encrypted VPN traffic rather than the final destination. These are not equivalent and operators with a specific threat model should be precise about which leg they intend to protect.
-
-This is documented as a specification gap rather than a defect: closing it is a SHOULD-level recommendation for device configuration, not a MUST-level requirement on the protocol, because the GTP-U leg is carrier transport that CAMO does not control. A future revision of this specification may define an optional device-to-entry encrypted overlay as part of the protocol itself rather than leaving it to operator discretion.
+One distinction worth noting for anyone evaluating this on their own terms: encryption applied before the GTP-U leg protects that specific leg, while encryption applied after the CAMO exit node protects a different leg and additionally removes destination visibility from the exit node operator. These are not interchangeable, but which (if either) a user chooses to apply, and where, is their decision alone.
 
 ---
 
