@@ -80,7 +80,7 @@ camo/
 ├── LICENSE                           — CC BY 4.0
 ├── LEGAL.md                          — legal considerations
 │
-├── spec/
+├── docs/
 │   ├── mobile_onion_routing_spec.md  — protocol specification v0.1
 │   ├── gsm_routing_chains.md         — foundational architecture analysis
 │   ├── gsm_protocol_ss7.md           — GSM and SS7 background
