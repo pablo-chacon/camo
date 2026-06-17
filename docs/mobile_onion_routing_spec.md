@@ -116,25 +116,25 @@ The carrier cannot observe the destination of traffic. The carrier cannot observ
 
 ## 3. Design Principles
 
-**P1 — Permissionless**  
+**1. Permissionless**  
 Any operator with appropriate infrastructure can run a distribution server. There is no admission authority, no vetting process, no central registration. The network is open by design.
 
-**P2 — No single point of trust**  
+**2. No single point of trust**  
 No node in the network can reconstruct a complete circuit. No directory authority can be compelled to deanonymize users. No central coordinator exists.
 
-**P3 — Implementation agnostic**  
+**3. Implementation agnostic**  
 This specification defines interfaces and behaviors. It does not mandate specific APN core software. Compliant implementations may use any software that satisfies the interface contract defined in Appendix B.
 
-**P4 — Carrier agnostic**  
+**4. Carrier agnostic**  
 This protocol operates above the radio access layer. It requires only that the carrier support private APN routing to a customer-defined endpoint — a standard feature of M2M carrier offerings. No carrier-specific features, APIs, or cooperation beyond standard private APN provisioning are required.
 
-**P5 — Free to use**  
+**5. Free to use**  
 This protocol defines no payment mechanism, no token, no fee structure. Access to the network carries no cost at the protocol level. Node operators determine their own operational model. The protocol is silent on economics.
 
-**P6 — Jurisdictional diversity by construction**  
+**6. Jurisdictional diversity by construction**  
 Circuit construction algorithms enforce geographic and jurisdictional distribution across hops. No circuit may traverse multiple consecutive hops within the same legal jurisdiction.
 
-**P7 — Honest threat model**  
+**7. Honest threat model**  
 This specification documents what the protocol protects against and what it does not. No privacy claim is made beyond what the architecture supports.
 
 ---
