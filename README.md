@@ -121,7 +121,12 @@ Full requirements in Section 13 of the specification. In brief:
 - Pool of M2M eSIM cards (minimum 8, recommended 24+)
 
 ```
-docker compose up -d
+docker compose -f deploy/docker-compose.yml up 
+```
+or
+
+```
+cd deploy && docker compose up
 ```
 
 No registration. No fee. No central authority.
