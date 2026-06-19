@@ -1,5 +1,5 @@
 # CAMO — Reference Deployment
-# Spec reference: Section 13 Implementation Requirements
+# Spec reference: Section 13 — Implementation Requirements
 #
 # Brings up all five CAMO components as isolated containers.
 # Components communicate via shared /run/camo volume (Unix sockets).
@@ -36,13 +36,15 @@ volumes:
 
 services:
 
-  # camo-gossip: node discovery and announcement
+  # camo-gossip — node discovery and announcement
   # Spec reference: Section 9
   gossip:
     <<: *common
     build:
-      context: ../camo-gossip
-      dockerfile: ../deploy/Dockerfile.go
+      context: ..
+      dockerfile: deploy/Dockerfile.go
+      args:
+        COMPONENT: gossip
     image: camo/gossip:latest
     container_name: camo-gossip
     ports:
@@ -59,13 +61,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # camo-simpool: SIM pool management and rotation
+  # camo-simpool — SIM pool management and rotation
   # Spec reference: Section 7
   simpool:
     <<: *common
     build:
-      context: ../camo-simpool
-      dockerfile: ../deploy/Dockerfile.go
+      context: ..
+      dockerfile: deploy/Dockerfile.go
+      args:
+        COMPONENT: simpool
     image: camo/simpool:latest
     container_name: camo-simpool
     volumes:
@@ -82,13 +86,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # camo-apncore: APN core interface adapter
+  # camo-apncore — APN core interface adapter
   # Spec reference: Section 6, Appendix B
   apncore:
     <<: *common
     build:
-      context: ../camo-apncore
-      dockerfile: ../deploy/Dockerfile.go
+      context: ..
+      dockerfile: deploy/Dockerfile.go
+      args:
+        COMPONENT: apncore
     image: camo/apncore:latest
     container_name: camo-apncore
     ports:
@@ -108,13 +114,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # camo-wireguard: WireGuard peer lifecycle management
+  # camo-wireguard — WireGuard peer lifecycle management
   # Spec reference: Section 8
   wireguard:
     <<: *common
     build:
-      context: ../camo-wireguard
-      dockerfile: ../deploy/Dockerfile.go
+      context: ..
+      dockerfile: deploy/Dockerfile.go
+      args:
+        COMPONENT: wireguard
     image: camo/wireguard:latest
     container_name: camo-wireguard
     ports:
@@ -138,13 +146,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # camo-circuit: circuit construction and rotation
+  # camo-circuit — circuit construction and rotation
   # Spec reference: Section 10, Section 11
   circuit:
     <<: *common
     build:
-      context: ../camo-circuit
-      dockerfile: ../deploy/Dockerfile.go
+      context: ..
+      dockerfile: deploy/Dockerfile.go
+      args:
+        COMPONENT: circuit
     image: camo/circuit:latest
     container_name: camo-circuit
     volumes:
