@@ -1,0 +1,9 @@
+go 1.21
+
+use (
+	./camo-gossip
+	./camo-simpool
+	./camo-apncore
+	./camo-wireguard
+	./camo-circuit
+)

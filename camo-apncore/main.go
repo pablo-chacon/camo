@@ -58,19 +58,19 @@ func main() {
 
 	switch cfg.Adapter {
 	case "mock":
-		slog.Warn("using mock APN adapter. Not suitable for production")
+		slog.Warn("using mock APN adapter — not suitable for production")
 		m := mock.New()
 		// Wrap mock adapter to satisfy the main package interface.
 		adapter = &mockAdapterWrapper{m}
 
 	case "open5gs":
 		// Replace with: adapter = open5gs.New(cfg)
-		slog.Error("open5gs adapter not yet implemented, use 'mock' for development")
+		slog.Error("open5gs adapter not yet implemented — use 'mock' for development")
 		os.Exit(1)
 
 	case "free5gc":
 		// Replace with: adapter = free5gc.New(cfg)
-		slog.Error("free5gc adapter not yet implemented, use 'mock' for development")
+		slog.Error("free5gc adapter not yet implemented — use 'mock' for development")
 		os.Exit(1)
 
 	default:

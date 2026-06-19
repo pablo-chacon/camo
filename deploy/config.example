@@ -1,0 +1,74 @@
+# CAMO Node Configuration Examples
+# Place these files in /etc/camo/ on the distribution server.
+# All values shown are examples — replace with real values.
+
+# ============================================================
+# /etc/camo/gossip.json
+# ============================================================
+# {
+#   "listen_addr": "0.0.0.0:7946",
+#   "wireguard_addr": "203.0.113.1:51820",
+#   "gtp_addr": "203.0.113.1:2152",
+#   "bootstrap_peers": [
+#     "bootstrap1.camo.example:7946",
+#     "bootstrap2.camo.example:7946"
+#   ],
+#   "data_dir": "/var/lib/camo",
+#   "regions": ["NL"],
+#   "jurisdictions": ["NL"],
+#   "exit_node": false,
+#   "max_circuits": 100,
+#   "wireguard_pubkey": "<your WireGuard public key>"
+# }
+
+# ============================================================
+# /etc/camo/simpool.json
+# ============================================================
+# {
+#   "sim_rotation_interval": 480,
+#   "use_mock_checker": false,
+#   "sims": [
+#     {
+#       "imsi": "204080123456789",
+#       "carrier": "1NCE",
+#       "jurisdiction": "NL",
+#       "apn": "iot.1nce.net"
+#     },
+#     {
+#       "imsi": "204080987654321",
+#       "carrier": "1NCE",
+#       "jurisdiction": "NL",
+#       "apn": "iot.1nce.net"
+#     }
+#   ]
+# }
+
+# ============================================================
+# /etc/camo/apncore.json
+# ============================================================
+# {
+#   "adapter": "mock"
+# }
+# Valid adapter values: "mock", "open5gs", "free5gc"
+# mock: no real APN core required — for development only
+# open5gs / free5gc: real APN core adapter (implement separately)
+
+# ============================================================
+# /etc/camo/wireguard.json
+# ============================================================
+# {
+#   "interface_name": "camo0",
+#   "listen_port": 51820,
+#   "private_key_path": "/var/lib/camo/wg.key"
+# }
+
+# ============================================================
+# /etc/camo/circuit.json
+# ============================================================
+# {
+#   "rotation_interval": 600,
+#   "gossip_socket": "/run/camo/gossip.sock",
+#   "wireguard_socket": "/run/camo/wireguard.sock",
+#   "apn_socket": "/run/apncore.sock",
+#   "simpool_socket": "/run/camo/simpool.sock"
+# }
